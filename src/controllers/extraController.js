@@ -1,102 +1,135 @@
-/**
- * EXTRA CONTROLLER - src/controllers/extraController.js
- * 
- * PURPOSE:
- * - Handle requests for additional API integrations
- * - Extract and validate query parameters
- * - Call extra services and format responses
- * 
- * WHAT SHOULD BE HERE:
- * 
- * FUNCTION 1: getCountry(req, res, next)
- * - Extracts country code from req.query.code
- * - Validates code is provided (throw 400 if missing)
- * - Calls extraService.getCountryInfo(code)
- * - Formats response data with:
- *   * name (common name)
- *   * population
- *   * region
- *   * languages
- *   * currencies
- *   * flags (svg)
- * - Returns JSON: { success: true, data: {...} }
- * - Passes errors to next(error)
- * 
- * FUNCTION 2: getSunriseSunset(req, res, next)
- * - Extracts lat and lon from req.query
- * - Validates both are provided (throw 400 if missing)
- * - Converts to parseFloat
- * - Calls extraService.getSunriseSunset(lat, lon)
- * - Formats response with:
- *   * sunrise (first element from daily.sunrise)
- *   * sunset (first element from daily.sunset)
- *   * timezone
- * - Returns JSON: { success: true, data: {...} }
- * - Passes errors to next(error)
- * 
- * EXPECTED RESPONSES:
- * Country: { "success": true, "data": { "name": "Kazakhstan", "population": 19397000, ... } }
- * Sunrise: { "success": true, "data": { "sunrise": "2024-12-25T07:45:00", "sunset": "...", "timezone": "..." } }
- */
+const extraService = require('../services/extraService');
 
-/**
- * EXTRA CONTROLLER - src/controllers/extraController.js
- * 
- * PURPOSE:
- * - Handle requests for additional API integrations
- * - Extract and validate query parameters
- * - Call extra services and format responses
- * 
- * WHAT SHOULD BE HERE:
- * 
- * FUNCTION 1: getCountry(req, res, next)
- * - Extracts country code from req.query.code
- * - Validates code is provided (throw 400 if missing)
- * - Calls extraService.getCountryInfo(code)
- * - Formats response data with:
- *   * name (common name)
- *   * population
- *   * region
- *   * languages
- *   * currencies
- *   * flags (svg)
- * - Returns JSON: { success: true, data: {...} }
- * - Passes errors to next(error)
- * 
- * FUNCTION 2: getSunriseSunset(req, res, next)
- * - Extracts lat and lon from req.query
- * - Validates both are provided (throw 400 if missing)
- * - Converts to parseFloat
- * - Calls extraService.getSunriseSunset(lat, lon)
- * - Formats response with:
- *   * sunrise (first element from daily.sunrise)
- *   * sunset (first element from daily.sunset)
- *   * timezone
- * - Returns JSON: { success: true, data: {...} }
- * - Passes errors to next(error)
- * 
- * EXPECTED RESPONSES:
- * Country: { "success": true, "data": { "name": "Kazakhstan", "population": 19397000, ... } }
- * Sunrise: { "success": true, "data": { "sunrise": "2024-12-25T07:45:00", "sunset": "...", "timezone": "..." } }
- */
+const getCountry = async (req, res, next) => {
+    try {
+        const { code } = req.query;
+        
+        if (!code || typeof code !== 'string' || code.trim() === '') {
+            const error = new Error('Country code is required');
+            error.status = 400;
+            error.details = 'Please provide a valid country code (e.g., US, GB, KZ)';
+            throw error;
+        }
+        
+        const serviceResult = await extraService.getCountryInfo(code);
+        
+        const formattedData = {
+            name: serviceResult.data.name || 'N/A',
+            officialName: serviceResult.data.officialName || 'N/A',
+            population: serviceResult.data.population || 0,
+            region: serviceResult.data.region || 'N/A',
+            subregion: serviceResult.data.subregion || 'N/A',
+            capital: serviceResult.data.capital || 'N/A',
+            languages: serviceResult.data.languages || [],
+            currencies: serviceResult.data.currencies || [],
+            flag: serviceResult.data.flag || '',
+            flagAlt: serviceResult.data.flagAlt || '',
+            timezones: serviceResult.data.timezones || [],
+            borders: serviceResult.data.borders || [],
+            area: serviceResult.data.area || 0,
+            cca2: serviceResult.data.cca2 || '',
+            cca3: serviceResult.data.cca3 || ''
+        };
+        
+        res.status(200).json({
+            success: true,
+            data: formattedData,
+            message: `Country information retrieved successfully for ${formattedData.name}`
+        });
+        
+    } catch (error) {
+        next(error);
+    }
+};
 
-// TODO: Require extraService
+const getSunriseSunset = async (req, res, next) => {
+    try {
+        const { lat, lon } = req.query;
+        
+        if (!lat || !lon) {
+            const error = new Error('Both latitude and longitude are required');
+            error.status = 400;
+            error.details = 'Please provide both lat and lon query parameters (e.g., lat=40.7128&lon=-74.0060)';
+            throw error;
+        }
+        
+        const latitude = parseFloat(lat);
+        const longitude = parseFloat(lon);
+        
+        if (isNaN(latitude) || isNaN(longitude)) {
+            const error = new Error('Latitude and longitude must be valid numbers');
+            error.status = 400;
+            throw error;
+        }
+        
+        if (latitude < -90 || latitude > 90) {
+            const error = new Error('Latitude must be between -90 and 90 degrees');
+            error.status = 400;
+            throw error;
+        }
+        
+        if (longitude < -180 || longitude > 180) {
+            const error = new Error('Longitude must be between -180 and 180 degrees');
+            error.status = 400;
+            throw error;
+        }
+        
+        const serviceResult = await extraService.getSunriseSunset(latitude, longitude);
+        
+        const formattedData = {
+            coordinates: {
+                latitude: serviceResult.data.coordinates.latitude,
+                longitude: serviceResult.data.coordinates.longitude
+            },
+            sunrise: serviceResult.data.today.sunrise || 'N/A',
+            sunset: serviceResult.data.today.sunset || 'N/A',
+            sunrise_formatted: serviceResult.data.today.sunrise_formatted || 'N/A',
+            sunset_formatted: serviceResult.data.today.sunset_formatted || 'N/A',
+            timezone: serviceResult.data.timezone || 'UTC',
+            timezone_abbreviation: serviceResult.data.timezone_abbreviation || 'UTC',
+            elevation: serviceResult.data.elevation || 0
+        };
+        
+        res.status(200).json({
+            success: true,
+            data: formattedData,
+            message: `Sunrise and sunset times retrieved for coordinates (${formattedData.coordinates.latitude}, ${formattedData.coordinates.longitude})`
+        });
+        
+    } catch (error) {
+        next(error);
+    }
+};
 
-// TODO: Create getCountry(req, res, next) async function
-// TODO: Extract code from query
-// TODO: Validate code parameter
-// TODO: Call extraService
-// TODO: Format country response
-// TODO: Send JSON response
-// TODO: Handle errors
+const getCompleteCityInfo = async (req, res, next) => {
+    try {
+        const { city } = req.query;
+        
+        if (!city || typeof city !== 'string' || city.trim() === '') {
+            const error = new Error('City name is required');
+            error.status = 400;
+            throw error;
+        }
+        
+        const completeInfo = {
+            city: city,
+            timestamp: new Date().toISOString(),
+            note: 'This endpoint would combine weather service with extra services'
+        };
+        
+        res.status(200).json({
+            success: true,
+            data: completeInfo,
+            message: 'Complete city information endpoint (placeholder)'
+        });
+        
+    } catch (error) {
+        next(error);
+    }
+};
 
-// TODO: Create getSunriseSunset(req, res, next) async function
-// TODO: Extract lat and lon from query
-// TODO: Validate both parameters
-// TODO: Parse to float
-// TODO: Call extraService
-// TODO: Format sunrise/sunset response
-// TODO: Send JSON response
-// TODO: Handle errors
-
-// TODO: Export both functions in module.exports
+module.exports = {
+    getCountry,
+    getSunriseSunset,
+    getCompleteCityInfo
+};

@@ -1,9 +1,11 @@
 {
   "name": "assignment-2_aldiyar_zhaksylyk_node_js",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "description": "Weather application with country and sunrise/sunset APIs",
+  "main": "src/server.js",
   "scripts": {
+    "start": "node src/server.js",
+    "dev": "nodemon src/server.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
@@ -11,6 +13,10 @@
   "license": "ISC",
   "dependencies": {
     "axios": "^1.13.2",
-    "dotenv": "^17.2.3"
+    "dotenv": "^17.2.3",
+    "express": "^4.22.1"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.11"
   }
 }
