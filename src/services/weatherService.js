@@ -23,19 +23,14 @@ async function getWeatherByCity(city) {
         
         return {
             city: data.name,
+            countryCode: data.sys.country,
+            lat: data.coord.lat,
+            lon: data.coord.lon,
             temperature: data.main.temp,
             feelsLike: data.main.feels_like,
             humidity: data.main.humidity,
-            pressure: data.main.pressure,
-            weatherDescription: data.weather[0].description,
-            weatherIcon: data.weather[0].icon,
-            coordinates: {
-                latitude: data.coord.lat,
-                longitude: data.coord.lon
-            },
             windSpeed: data.wind.speed,
-            countryCode: data.sys.country,
-            rainVolume: data.rain?.['1h'] || null
+            weatherDescription: data.weather[0].description
         };
 
     } catch (err) {
